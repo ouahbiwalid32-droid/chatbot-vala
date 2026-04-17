@@ -8,19 +8,19 @@ def get_website_text(url):
 
         soup = BeautifulSoup(response.text, "html.parser")
 
-        # ❌ supprimer scripts, styles, header, footer
+        #  supprimer scripts, styles, header, footer
         for tag in soup(["script", "style", "header", "footer", "nav"]):
             tag.extract()
 
         text = soup.get_text(separator=" ")
 
-        # 🧹 nettoyer texte
+        #  nettoyer texte
         text = " ".join(text.split())
 
         return text
 
     except Exception as e:
-        print(f"❌ Erreur scraping {url}:", e)
+        print(f" Erreur scraping {url}:", e)
         return ""
 
 

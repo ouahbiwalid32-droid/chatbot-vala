@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <title>Admin Dashboard - Chatbot MyVala</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial; margin: 20px; background: #f5f6fa; }
+        h1 { color: #2c3e50; }
+
+``
+    .stats { display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap; }
+
+    .card {
+        background: white;
+        padding: 15px 25px;
+        border-radius: 10px;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+        min-width: 180px;
+    }
+
+    .card h3 { margin: 0 0 10px 0; color: #777; }
+    .card p { font-size: 26px; font-weight: bold; margin: 0; }
+
+    .success { color: #27ae60; }
+    .error { color: #e74c3c; }
+
+    .charts { display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap; }
+
+    .chart-container {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+        flex: 1;
+        min-width: 300px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    th, td {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+    }
+
+    th { background: #2c3e50; color: white; }
+    tr:hover { background: #f9f9f9; }
+
+    .filter-bar {
+        margin-bottom: 20px;
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+    }
+
+    .export-btn {
+        background: #2c3e50;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .export-btn:hover { background: #1a2a3a; }
+
+    .section {
+        margin-top: 30px;
+    }
+</style>
+```
+
+</head>
+<body>
+
+<h1>📊 Dashboard Admin - Chatbot MyVala</h1>
+
+<!-- KPIs -->
+
+<div class="stats">
+    <div class="card">
+        <h3>📝 Total questions</h3>
+        <p>{{ total_questions }}</p>
+    </div>
+
+```
+<div class="card">
+    <h3>⚡ Temps moyen</h3>
+    <p>{{ temps_moyen }} s</p>
+</div>
+
+<div class="card">
+    <h3>✅ Réussite</h3>
+    <p class="success">{{ success_rate }}%</p>
+</div>
+
+<div class="card">
+    <h3>❌ Échec</h3>
+    <p class="error">{{ fail_rate }}%</p>
+</div>
+```
+
+</div>
+
+<!-- GRAPHS -->
+
+<div class="charts">
+    <div class="chart-container">
+        <canvas id="questionsChart"></canvas>
+    </div>
+    <div class="chart-container">
+        <canvas id="tempsChart"></canvas>
+    </div>
+</div>
+
+<div class="filter-bar">
+    <button class="export-btn" onclick="exportCSV()">📎 Exporter CSV</button>
+</div>
+
+<!-- TOP QUESTIONS -->
+
+<div class="section">
+<h2>🔍 Top 5 questions</h2>
+<table>
+<thead><tr><th>Question</th><th>Nombre</th></tr></thead>
+<tbody>
+{% for q, nb in top_questions %}
+<tr><td>{{ q[:80] }}...</td><td>{{ nb }}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+
+<!-- QUESTIONS NON COMPRISES -->
+
+<div class="section">
+<h2>❌ Questions non comprises</h2>
+<table>
+<thead><tr><th>Question</th></tr></thead>
+<tbody>
+{% for q in failed_questions %}
+<tr>
+    <td>{{ q }}</td>
+    <td>
+        <button onclick="addToFAQ(this)" data-question="{{ q }}">➕ Ajouter</button>
+    </td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+
+<!-- LOGS -->
+
+<div class="section">
+<h2>📋 Dernières conversations</h2>
+<div id="logsTable"></div>
+</div>
+
+<script>
+let allLogs = {{ logs | tojson }};
+
+function displayLogs(logs) {
+    let html = `<table>
+    <thead>
+    <tr><th>Date</th><th>Session</th><th>Question</th><th>Réponse</th><th>Temps</th></tr>
+    </thead><tbody>`;
+
+    for (let log of logs) {
+        html += `<tr>
+            <td>${log[0].slice(0,19)}</td>
+            <td>${log[1].slice(0,8)}...</td>
+            <td>${log[2].slice(0,60)}...</td>
+            <td>${log[3].slice(0,60)}...</td>
+            <td>${log[4]} s</td>
+        </tr>`;
+    }
+
+    html += `</tbody></table>`;
+    document.getElementById('logsTable').innerHTML = html;
+}
+
+function exportCSV() {
+    let csv = "Date,Session,Question,Réponse,Temps(s)\n";
+    for (let log of allLogs) {
+        csv += `"${log[0]}","${log[1]}","${log[2]}","${log[3]}","${log[4]}"\n`;
+    }
+
+    let blob = new Blob([csv], {type: "text/csv"});
+    let a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = "chatbot_logs.csv";
+    a.click();
+}
+
+const jours = {{ jours | tojson }};
+const nbQuestions = {{ nb_questions_par_jour | tojson }};
+const tempsMoyens = {{ temps_moyens_par_jour | tojson }};
+
+new Chart(document.getElementById('questionsChart'), {
+    type: 'line',
+    data: { labels: jours, datasets: [{ label: 'Questions', data: nbQuestions }] }
+});
+
+new Chart(document.getElementById('tempsChart'), {
+    type: 'line',
+    data: { labels: jours, datasets: [{ label: 'Temps moyen', data: tempsMoyens }] }
+});
+
+displayLogs(allLogs);
+
+function addToFAQ(btn) {
+    const question = btn.getAttribute('data-question');
+    const reponse = prompt(`Réponse pour :\n"${question}" ?`);
+    if (!reponse || reponse.trim() === "") return;
+
+    fetch('/add_faq', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Basic ' + btoa('admin:admin123')
+        },
+        body: JSON.stringify({ question: question, reponse: reponse })
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.message);
+        // Supprimer la ligne du tableau
+        btn.closest('tr').remove();
+    });
+}
+</script>
+</body>
+</html>

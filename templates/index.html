@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ValaBleu — Assistant IA</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <div class="lang-selector">
+  <button onclick="setLang('fr')" id="btn-fr" class="active">FR</button>
+  <button onclick="setLang('en')" id="btn-en">EN</button>
+  <button onclick="setLang('ar')" id="btn-ar">AR</button>
+</div>
   <style>
     :root {
       --bg:          #111620;
@@ -456,6 +461,17 @@
       const t = document.getElementById('typing-row');
       if (t) t.remove();
     }
+    let currentLang = 'fr';
+
+    function setLang(lang) {
+        currentLang = lang;
+        document.querySelectorAll('.lang-selector button')
+            .forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-' + lang).classList.add('active');
+    }
+
+    // Dans sendMessage() :
+    body: JSON.stringify({ message, session_id: sessionId, lang: currentLang })
 
     async function sendMessage(preset) {
       const input = document.getElementById('userInput');
